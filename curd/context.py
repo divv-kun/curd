@@ -1,18 +1,21 @@
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .analysis import read_local_file, text_view
 
 
 TAG_ALIASES = {
-    "binary-exploitation": "pwn", "blueteam": "blue-team", "crypto": "cryptography",
-    "dfir": "forensics", "redteam": "red-team", "rev": "reverse",
+    "binary-exploitation": "pwn", "blockchain": "web3", "blueteam": "blue-team",
+    "crypto": "cryptography", "dfir": "forensics", "ics": "ot", "malware-analysis": "malware",
+    "ot-sec": "ot", "ot-security": "ot", "redteam": "red-team", "rev": "reverse",
     "reverse-engineering": "reverse", "steganography": "stego",
 }
 EDITOR_TAGS = {
-    "blue-team", "cryptography", "encoding", "forensics", "misc", "osint",
-    "pwn", "red-team", "reverse", "stego", "web",
+    "blue-team", "cryptography", "encoding", "forensics", "hardware", "malware",
+    "misc", "mobile", "network", "osint", "ot", "pwn", "red-team", "reverse", "stego",
+    "web", "web3",
 }
 DECODING_HINTS = {
     "hex": r"\bhex(?:adecimal)?\b",
@@ -22,6 +25,21 @@ DECODING_HINTS = {
     "rot13": r"\brot[ -]?13\b",
     "gzip": r"\bgzip\b",
 }
+CTF42_CHALLENGE = re.compile(r"/ctfs/[a-z0-9_-]{1,100}/[0-9]{4}/[a-z0-9_-]{1,160}/?", re.IGNORECASE | re.ASCII)
+
+
+def ctf42_reference(value: str) -> str:
+    try:
+        url = urlsplit(value.strip())
+        if (
+            url.scheme == "https"
+            and url.netloc.lower() in {"ctf42.online", "www.ctf42.online"}
+            and CTF42_CHALLENGE.fullmatch(url.path)
+        ):
+            return f"https://ctf42.online{url.path.rstrip('/')}/"
+    except ValueError:
+        pass
+    raise ValueError("Use an HTTPS CTF42 challenge page URL copied from the address bar.")
 
 
 def category_tag(value: str) -> str:

@@ -10,11 +10,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 from curd.analysis import DEFAULT_PREFIXES, MAX_FILE, analyze
-from curd.context import ChallengeContext, category_tag, load_context
+from curd.context import ChallengeContext, category_tag, ctf42_reference, load_context
 from curd.integrations import analysis_prompt, editorial_choice
 
 
 EMPTY_CONTEXT = ChallengeContext(None, "")
+REFERENCE_URL = "https://ctf42.online/ctfs/wolvctf/2024/hidden_data/"
 
 
 class DecoderTest(unittest.TestCase):
@@ -103,6 +104,22 @@ class DecoderTest(unittest.TestCase):
                 ChallengeContext("blue-team", "Could be Gzip."),
             )
 
+    def test_ctf42_reference_requires_a_challenge_page_and_strips_tracking(self):
+        self.assertEqual(
+            ctf42_reference(REFERENCE_URL.rstrip("/") + "?utm_source=example#writeups"),
+            REFERENCE_URL,
+        )
+        for url in (
+            REFERENCE_URL.replace("https:", "http:"),
+            REFERENCE_URL.replace("ctf42.online", "ctf42.online.example.org"),
+            REFERENCE_URL.replace("ctf42.online", "example.org@ctf42.online"),
+            REFERENCE_URL.replace("hidden_data", "%2e%2e"),
+            REFERENCE_URL.replace("hidden_data", "test)![image]"),
+            "https://ctf42.online/mcp",
+        ):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                ctf42_reference(url)
+
 
 class DetachedJobTest(unittest.TestCase):
     def test_mcp_failure_preserves_report_and_retry_publishes_same_report(self):
@@ -134,7 +151,10 @@ class DetachedJobTest(unittest.TestCase):
 
             saved = curd("setup", "--mcp-config", str(config))
             self.assertEqual(saved.returncode, 0, saved.stdout + saved.stderr)
-            queued = curd(str(file), "local", "--description", str(description), "--category", "forensics")
+            queued = curd(
+                str(file), "local", "--description", str(description), "--category", "forensics",
+                "--reference", REFERENCE_URL,
+            )
             self.assertEqual(queued.returncode, 0, queued.stderr)
             job_id = queued.stdout.strip()
             finished = curd("status", "--wait", "--timeout", "12")
@@ -145,6 +165,7 @@ class DetachedJobTest(unittest.TestCase):
             self.assertIn("flag{detached}", text)
             self.assertIn("Category #forensics", text)
             self.assertIn("    Look at the Base64.", text)
+            self.assertIn(f"[CTF42 challenge page]({REFERENCE_URL})", text)
             config.write_text(config.read_text(encoding="utf-8").replace('"fail"', '"ok"'), encoding="utf-8")
             retried = curd("publish")
             self.assertEqual(retried.returncode, 0, retried.stdout + retried.stderr)

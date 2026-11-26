@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .analysis import DEFAULT_PREFIXES, MAX_FILE, METHODS, Findings, analyze, read_local_file
-from .context import ChallengeContext, category_tag, load_context
+from .context import ChallengeContext, category_tag, ctf42_reference, load_context
 from .integrations import publish_note, editorial_choice
 
 
@@ -124,6 +124,8 @@ def report(job: dict, findings: Findings, editors: list[dict], context: Challeng
             lines.append(f"- `{candidate}` via {path_label(path)}")
     else:
         lines.append("I found no flag matching the configured prefixes in the paths I checked.")
+    if reference := job.get("reference"):
+        lines.extend(["", "## Reference", "", f"[CTF42 challenge page]({ctf42_reference(reference)})"])
     if editors:
         lines.extend(["", "## Editorial review", ""])
         for editor in editors:
@@ -293,6 +295,7 @@ def start_job(argv: list[str], root: Path) -> int:
                         help="co, cl, oc, agy, local, or a comma-separated list (default: co)")
     parser.add_argument("--description", "--desc", metavar="FILE", help="UTF-8 description file")
     parser.add_argument("--category", "--tag", metavar="TAG", help="Challenge category tag")
+    parser.add_argument("--reference", "--ctf42", metavar="URL", help="Cite a CTF42 challenge page in the writeup")
     parser.add_argument("--flag-prefix", action="append", help="Replace default flag prefixes. Repeat for more.")
     parser.add_argument("--provider-timeout", type=positive_seconds, default=60,
                         help="Timeout per editor in seconds (default: 60)")
@@ -313,6 +316,7 @@ def start_job(argv: list[str], root: Path) -> int:
     source = source.absolute()
     description = Path(args.description).expanduser().absolute() if args.description else None
     category = category_tag(args.category) if args.category else None
+    reference = ctf42_reference(args.reference) if args.reference is not None else None
     options = mcp_options(args, parser, defaults=root)
     job_id = uuid.uuid4().hex
     folder = root / job_id
@@ -321,6 +325,7 @@ def start_job(argv: list[str], root: Path) -> int:
         "file": str(source), "providers": providers, "prefixes": prefixes,
         "provider_timeout": args.provider_timeout, "note_path": f"CTF/curd-{job_id}.md",
         "category": category, "description_file": str(description) if description else None,
+        "reference": reference,
         **options,
     }
     store(folder, job, state="queued", publication="pending" if any(options.values()) else "not configured")

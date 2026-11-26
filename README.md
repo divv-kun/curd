@@ -7,7 +7,7 @@
 Install the wheel on Windows or Linux with Python 3.10 or newer.
 
 ```sh
-uv tool install ./curd_puzzle-0.3.0-py3-none-any.whl
+uv tool install ./curd_puzzle-0.4.0-py3-none-any.whl
 ```
 
 You can also install the wheel with `pipx install`. To install the source, run `uv tool install .` from the extracted directory.
@@ -28,9 +28,19 @@ The worker automatically sends a built-in prompt to Codex. Add `cl` for Claude C
 
 Use `--description clues.md` for a UTF-8 text file up to 8 KiB. Its first line can be `Category: forensics`. An explicit `--category` overrides that line. You can use `--tag` as an alias for `--category`. The writeup includes the full description and an Obsidian tag. Editors receive recognized category tags and supported encoding hints such as Base64 or Gzip as structured metadata.
 
-The [references](references/README.md) cover blue-team triage, forensic evidence, and static reverse engineering.
+The [skills and references catalog](references/README.md) covers blue-team work, forensics, static malware triage, cryptography, Web3 development, OT security, and offline CTF puzzles.
 
 The decoder recognizes plaintext flags, hexadecimal, Base64, Base32, percent escapes, ROT13, and Gzip, including combinations up to three transformations deep. It reads regular files up to 1 MiB and treats the file as data. The default flag prefixes are `flag`, `ctf`, `picoCTF`, `HTB`, and `THM`. Repeat `--flag-prefix` to supply multiple custom prefixes. The report records matching strings as candidates so you can verify them with the competition.
+
+## Cite CTF42
+
+Copy a challenge page URL from Brave or another browser and attach it when you start the job. The link appears in the local writeup and the published Obsidian note.
+
+```text
+curd "challenge.txt" --reference "https://ctf42.online/ctfs/wolvctf/2024/hidden_data/"
+```
+
+`--ctf42` is an alias for `--reference`. CTF42 links are citations. The worker handles them offline and discards URL query parameters and fragments.
 
 ## Publish to Obsidian
 
